@@ -3,20 +3,33 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import re
 import requests
+import random
 import time
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 import pandas as pd
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
+URL = os.getenv('CUSTOM_URL')
+MAX_SCROLLS = int(os.getenv('MAX_LISTINGS'))
 # Setup Selenium
-driver = webdriver.Chrome()
-driver.get("https://www.99acres.com/search/property/buy/hadapsar?city=1171166&keyword=Hadapsar&preference=S&area_unit=1&res_com=R")
 
-# ✅ Wait until at least one price container loads (this ensures full listing content)
+chrome_options = Options()
+#chrome_options.add_argument("--headless") 
+chrome_options.add_argument("--window-size=1920,1080")
+chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+driver = webdriver.Chrome(service=Service(), options=chrome_options)    
+
+driver.get(URL)
+
+# Wait until at least one price container loads (this ensures full listing content)
 try:
     WebDriverWait(driver, 15).until(
         EC.presence_of_element_located((By.CLASS_NAME, "tupleNew__priceValWrap"))
@@ -25,21 +38,22 @@ except Exception as e:
     print("Listings did not load properly:", e)
     driver.quit()
     exit()
-s
+
 #Scrolling Loop
-SCROLL_PAUSE_TIME = 2
-MAX_SCROLLS = 10  # increase this if you want more listings
+SCROLL_PAUSE_TIME = 10
 last_height = driver.execute_script("return document.body.scrollHeight")
 
 for scroll_round in range(MAX_SCROLLS):
     # Scroll to bottom
     driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+    time.sleep(random.uniform(1.5, 4))  # Random sleep
 
     # Wait for new content to load
     time.sleep(SCROLL_PAUSE_TIME)
 
     # Calculate new scroll height
     new_height = driver.execute_script("return document.body.scrollHeight")
+
 
     if new_height == last_height:
         # No more content loaded
@@ -56,8 +70,6 @@ listings = soup.find_all("div", class_="tupleNew__contentWrap")
 
 properties = []
 
-with open("page_dump.html", "w", encoding="utf-8") as f:
-    f.write(driver.page_source)
 
 for i, listing in enumerate(listings, 1):
     try:
